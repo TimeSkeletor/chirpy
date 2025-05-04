@@ -1,3 +1,4 @@
 out
 chirpy
 .DS_Store
+.env
