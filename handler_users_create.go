@@ -20,25 +20,30 @@ func (cfg *apiConfig) handlerUsers(w http.ResponseWriter, r *http.Request) {
 		Email string `json:"email"`
 	}
 
+	type response struct {
+		User
+	}
+
 	decoder  := json.NewDecoder(r.Body)
 	params := parameters{}
 	if err := decoder.Decode(&params); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
 	}
 
 	user, err := cfg.db.CreateUser(r.Context(), params.Email)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Error creating user")
+		respondWithError(w, http.StatusInternalServerError, "Error creating user", err)
 		return
 	}
 
-	respBody := User{
-		ID: user.ID,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		Email: user.Email,
-	}
-	respondWithJSON(w, http.StatusCreated, respBody)
+	respondWithJSON(w, http.StatusCreated, response{
+		User: User{
+			ID:        user.ID,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+			Email:     user.Email,
+		},
+	})
 
 }

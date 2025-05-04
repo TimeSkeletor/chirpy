@@ -7,10 +7,12 @@ const (
 )
 
 func (cfg *apiConfig) handlerReset(w http.ResponseWriter, r *http.Request) {
-	cfg.fileserverHits.Store(0)
-	if cfg.platform != platform {
-		respondWithError(w, http.StatusForbidden, "")
+	if cfg.platform != "dev" {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("Reset is only allowed in dev environment."))
+		return
 	}
+	cfg.fileserverHits.Store(0)
 	cfg.db.DeleteUsers(r.Context())
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Hits reset to 0"))
