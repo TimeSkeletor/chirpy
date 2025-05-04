@@ -1,20 +1,22 @@
 package main
 
 import (
+	"log"
 	"net/http"
 )
 
 
-type Server struct {}
-
-
 func main() {
-	mux := http.NewServeMux()
+	const filepathRoot = "."
+	const port = "8080"
 
-	server := http.Server{
-        Addr:    ":8080",
+	mux := http.NewServeMux()
+	mux.Handle("/", http.FileServer(http.Dir(filepathRoot)))
+
+	srv := &http.Server{
+		Addr:    ":" + port,
         Handler: mux,
     }
 
-	server.ListenAndServe()
+	log.Fatal(srv.ListenAndServe())
 }
