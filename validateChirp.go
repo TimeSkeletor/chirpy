@@ -4,22 +4,19 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 )
 
-const chirpSizeLimit = 140
+const (
+	chirpSizeLimit = 140
+	cleanWord = "****"
+)
+var badWords = []string{"kerfuffle", "sharbert", "fornax"}
 
 func handlerValidateChirp(w http.ResponseWriter, r *http.Request) {
 
 	type chirp struct {
 		Body string `json:"body"`
-	}
-
-	type validChirp struct {
-		Valid bool `json:"valid"`
-	}
-
-	type errorResponse struct {
-		Error string `json:"error"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -32,21 +29,36 @@ func handlerValidateChirp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	valid := len(c.Body) <= chirpSizeLimit
-	var status int
-	var respBody interface{}
 
 	if valid {
-		status = 200
-
-		respBody = validChirp{
-			Valid: valid,
-		}
+		respondWithJSON(w, 200, cleanChirp(c.Body))
 	} else {
-		status = 400
-		respBody = errorResponse{
-			Error: "Chirp is too long",
-		}
+		respondWithError(w, 400, "Chirp is too long")
 	} 
+
+}
+
+func cleanChirp(msg string) string {
+	words := strings.Fields(msg)
+	for i, _ := range words {
+		word := strings.ToLower(words[i])
+		for j, _ := range badWords{
+			if word == badWords[j] {
+				words[i] = cleanWord
+			}
+		}
+	}
+	return strings.Join(words, " ")
+}
+
+func respondWithError(w http.ResponseWriter, code int, msg string) {
+	type errorResponse struct {
+		Error string `json:"error"`
+	}
+
+	respBody := errorResponse{
+		Error: msg,
+	}
 
 	dat, err := json.Marshal(respBody)
 	if err != nil {
@@ -55,7 +67,25 @@ func handlerValidateChirp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-    w.Header().Set("Content-Type", "application/json")
-    w.WriteHeader(status)
+	w.WriteHeader(code)
+    w.Write(dat)
+}
+
+func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
+	type validChirp struct {
+		CleanedBody string `json:"cleaned_body"`
+	}
+	respBody := validChirp{
+		CleanedBody:  payload.(string),
+	}
+
+	dat, err := json.Marshal(respBody)
+	if err != nil {
+		log.Printf("Error marshalling JSON: %s", err)
+		w.WriteHeader(500)
+		return
+	}
+
+	w.WriteHeader(code)
     w.Write(dat)
 }
