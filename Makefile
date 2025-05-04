@@ -19,14 +19,15 @@ migrate_up:
 	@echo "Running migrations up..."
 	@set -a; \
 	source .env; \
-	goose -dir sql/schema postgres "$$DATABASE_URL" up
+	goose -dir sql/schema postgres "$$DB_URL" up
 
 migrate_down:
 	@echo "Running migrations down..."
 	@set -a; \
 	source .env; \
-	goose -dir sql/schema postgres "$$DATABASE_URL" down
+	goose -dir sql/schema postgres "$$DB_URL" down
 
 install_deps:
 	go install github.com/pressly/goose/v3/cmd/goose@latest
+	go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 	go install github.com/joho/godotenv/cmd/dotenv@latest
