@@ -6,18 +6,22 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/timeskeletor/chirpy/internal/auth"
+	"github.com/timeskeletor/chirpy/internal/database"
 )
 
 type User struct {
-	ID        uuid.UUID `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Email     string    `json:"email"`
+	ID        			uuid.UUID `json:"id"`
+	CreatedAt 			time.Time `json:"created_at"`
+	UpdatedAt 			time.Time `json:"updated_at"`
+	Email     			string    `json:"email"`
+	hashedPassword     	string
 }
 
 func (cfg *apiConfig) handlerUsers(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Email string `json:"email"`
+		password string `json:"password"`
 	}
 
 	type response struct {
@@ -31,7 +35,15 @@ func (cfg *apiConfig) handlerUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := cfg.db.CreateUser(r.Context(), params.Email)
+	hsPwd, err := auth.HashPassword(params.password)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error creating user", err)
+		return
+	}
+	user, err := cfg.db.CreateUser(r.Context(), database.CreateUserParams{
+		Email:   params.Email,
+		HashedPassword: string(hsPwd),
+	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Error creating user", err)
 		return
@@ -43,6 +55,7 @@ func (cfg *apiConfig) handlerUsers(w http.ResponseWriter, r *http.Request) {
 			CreatedAt: user.CreatedAt,
 			UpdatedAt: user.UpdatedAt,
 			Email:     user.Email,
+			hashedPassword:     user.HashedPassword,
 		},
 	})
 

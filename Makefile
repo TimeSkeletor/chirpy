@@ -8,6 +8,9 @@ build:
 run:
 	go run .
 
+test:
+	go test ./...
+
 serve:
 	go build -o out && ./out
 
