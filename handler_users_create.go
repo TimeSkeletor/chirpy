@@ -15,27 +15,26 @@ type User struct {
 	CreatedAt 			time.Time `json:"created_at"`
 	UpdatedAt 			time.Time `json:"updated_at"`
 	Email     			string    `json:"email"`
-	hashedPassword     	string
 }
 
 func (cfg *apiConfig) handlerUsers(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Email string `json:"email"`
-		password string `json:"password"`
+		Password string `json:"password"`
 	}
 
 	type response struct {
 		User
 	}
 
-	decoder  := json.NewDecoder(r.Body)
+	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
 	if err := decoder.Decode(&params); err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
 	}
 
-	hsPwd, err := auth.HashPassword(params.password)
+	hsPwd, err := auth.HashPassword(params.Password)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Error creating user", err)
 		return
@@ -51,12 +50,10 @@ func (cfg *apiConfig) handlerUsers(w http.ResponseWriter, r *http.Request) {
 
 	respondWithJSON(w, http.StatusCreated, response{
 		User: User{
-			ID:        user.ID,
-			CreatedAt: user.CreatedAt,
-			UpdatedAt: user.UpdatedAt,
-			Email:     user.Email,
-			hashedPassword:     user.HashedPassword,
+			ID:        			user.ID,
+			CreatedAt: 			user.CreatedAt,
+			UpdatedAt: 			user.UpdatedAt,
+			Email:     			user.Email,
 		},
 	})
-
 }
