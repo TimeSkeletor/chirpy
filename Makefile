@@ -15,8 +15,15 @@ serve:
 	go build -o out && ./out
 
 start_db:
-	echo "Starting postgresql engine..."
-	brew services start postgresql@17
+	@echo "Starting postgresql engine..."
+	@status=$$(brew services list | grep postgresql@17 | awk '{print $$2}'); \
+	if [ "$$status" = "started" ]; then \
+		echo "Service already started. Restarting..."; \
+		brew services restart postgresql@17; \
+	else \
+		brew services start postgresql@17; \
+	fi
+
 
 migrate_up:
 	@echo "Running migrations up..."

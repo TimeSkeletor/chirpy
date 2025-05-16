@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/timeskeletor/chirpy/internal/auth"
 	"github.com/timeskeletor/chirpy/internal/database"
 )
 
@@ -76,15 +77,21 @@ func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, r *http.Request) {
 
 	respondWithJSON(w, http.StatusOK, Chirp{
 		ID:        chirp.ID,
-		CreatedAt: chirp.CreatedAt,
-		UpdatedAt: chirp.UpdatedAt,
-		Body:     chirp.Body,
+		CreatedAt: 	chirp.CreatedAt,
+		UpdatedAt: 	chirp.UpdatedAt,
+		Body:     	chirp.Body,
 		UserID:     chirp.UserID.String(),
 	})
 
 }
 
 func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
+	userID, err := authorizedRequest(r.Header, cfg.secret)
+		if err != nil {
+			respondWithError(w, http.StatusUnauthorized, "Invalid token", err)
+			return
+		}
+
 	type parameters struct {
 		Body string `json:"body"`
 		UserID string `json:"user_id"`
@@ -96,7 +103,7 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
-	err := decoder.Decode(&params)
+	err = decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return 
@@ -108,7 +115,8 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 	}
 
 	params.Body = getCleanedBody(params.Body, badWords)
-	userUUID, err := uuid.Parse(params.UserID)
+
+	userUUID, err := uuid.Parse(userID)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid user_id", err)
 		return
@@ -126,10 +134,10 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 
 	respondWithJSON(w, http.StatusCreated, response{
 		Chirp{
-			ID:        chirp.ID,
-			CreatedAt: chirp.CreatedAt,
-			UpdatedAt: chirp.UpdatedAt,
-			Body:     chirp.Body,
+			ID:        	chirp.ID,
+			CreatedAt: 	chirp.CreatedAt,
+			UpdatedAt: 	chirp.UpdatedAt,
+			Body:     	chirp.Body,
 			UserID:     chirp.UserID.String(),
 		},
 	})
@@ -146,4 +154,20 @@ func getCleanedBody(body string, badWords map[string]struct{}) string {
 	}
 	cleaned := strings.Join(words, " ")
 	return cleaned
+}
+
+
+// Returns the userID from the JWT token if valid, otherwise returns an error
+func authorizedRequest(r http.Header, secret string) (string, error) {
+    token, err := auth.GetBearerToken(r)
+    if err != nil {
+        return "", err
+    }
+
+    userID, err := auth.ValidateJWT(token, secret)
+    if err != nil {
+        return "", err
+    }
+
+    return userID.String(), nil
 }
