@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -18,6 +20,9 @@ const (
 	// TokenTypeAccess -
 	TokenTypeAccess TokenType = "chirpy-access"
 )
+
+// ErrNoAuthHeaderIncluded -
+var ErrNoAuthHeaderIncluded = errors.New("no auth header included in request")
 
 // HashPassword -
 func HashPassword(password string) (string, error) {
@@ -81,23 +86,27 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 	return id, nil
 }
 
-
+// GetBearerToken -
 func GetBearerToken(headers http.Header) (string, error) {
-	const prefix = "Bearer"
-
 	authHeader := headers.Get("Authorization")
-	if authHeader == ""{
-		return "", errors.New("authorization header missing")
+	if authHeader == "" {
+		return "", ErrNoAuthHeaderIncluded
+	}
+	splitAuth := strings.Split(authHeader, " ")
+	if len(splitAuth) < 2 || splitAuth[0] != "Bearer" {
+		return "", errors.New("malformed authorization header")
 	}
 
-	if !strings.HasPrefix(authHeader, prefix) {
-		return "", errors.New("authorization headers is not a Bearer token")
-	}
+	return splitAuth[1], nil
+}
 
-	token := strings.TrimSpace(strings.TrimPrefix(authHeader, prefix))
-	if token == "" {
-		return "", errors.New("bearer token is empty")
+// MakeRefreshToken makes a random 256 bit token
+// encoded in hex
+func MakeRefreshToken() (string, error) {
+	token := make([]byte, 32)
+	_, err := rand.Read(token)
+	if err != nil {
+		return "", err
 	}
-
-	return token, nil
+	return hex.EncodeToString(token), nil
 }
