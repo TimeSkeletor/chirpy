@@ -2,7 +2,8 @@ package main
 
 import (
 	"net/http"
-	
+	"sort"
+
 	"github.com/timeskeletor/chirpy/internal/database"
 	"github.com/google/uuid"
 )
@@ -32,6 +33,7 @@ func (cfg *apiConfig) handlerChirpsGet(w http.ResponseWriter, r *http.Request) {
 
 func (cfg *apiConfig) handlerChirpsRetrieve(w http.ResponseWriter, r *http.Request) {
 	authorIDParam := r.URL.Query().Get("author_id")
+	sortParam := r.URL.Query().Get("sort")
 	
 	var dbChirps []database.Chirp
 	var err error
@@ -65,6 +67,20 @@ func (cfg *apiConfig) handlerChirpsRetrieve(w http.ResponseWriter, r *http.Reque
 			UserID:    dbChirp.UserID,
 			Body:      dbChirp.Body,
 		})
+	}
+
+	if sortParam != "" {
+		switch sortParam {
+		case "asc":
+			sort.Slice(chirps, func(i, j int) bool {
+				return chirps[i].CreatedAt.Before(chirps[j].CreatedAt)
+			})
+		case "desc":
+			sort.Slice(chirps, func(i, j int) bool {
+				return chirps[i].CreatedAt.After(chirps[j].CreatedAt)
+			})
+		default:
+		}
 	}
 
 	respondWithJSON(w, http.StatusOK, chirps)
